@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import require_permission
+from app.api.deps import get_current_user, require_permission
 from app.core.database import get_db
 from app.core.permissions import Permission
 from app.enums import CREATABLE_ROLES, Role
@@ -9,12 +9,49 @@ from app.models.doctor_patient import DoctorPatient
 from app.models.hospital import Hospital
 from app.models.patient_profile import PatientProfile
 from app.models.user import User
-from app.schemas.user import PatientCreate, PatientDirectoryOut, PatientOut
+from app.schemas.user import (
+    PatientCreate,
+    PatientDirectoryOut,
+    PatientOut,
+    PatientProfileUpdate,
+)
 from app.services.access_service import user_hospital_id
 from app.services.audit_service import log_action
 from app.services.patient_service import create_patient_user
 
 router = APIRouter(prefix="/patients", tags=["patients"])
+
+
+@router.get("/me", response_model=PatientOut)
+def get_my_profile(current: User = Depends(get_current_user)) -> User:
+    if current.role != Role.PATIENT or current.profile is None:
+        raise HTTPException(status_code=404, detail="Patient profile not found")
+    return current
+
+
+@router.patch("/me", response_model=PatientOut)
+def update_my_profile(
+    data: PatientProfileUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
+    current: User = Depends(require_permission(Permission.PATIENT_PROFILE_UPDATE)),
+) -> User:
+    if current.role != Role.PATIENT or current.profile is None:
+        raise HTTPException(status_code=404, detail="Patient profile not found")
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(current.profile, field, value)
+    db.commit()
+    db.refresh(current)
+    log_action(
+        db,
+        current,
+        "patient.profile_update",
+        "patient",
+        current.id,
+        hospital_id=current.profile.hospital_id,
+        request=request,
+    )
+    return current
 
 
 @router.post("", response_model=PatientOut, status_code=status.HTTP_201_CREATED)

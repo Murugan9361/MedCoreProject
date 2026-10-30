@@ -13,3 +13,17 @@ def ensure_past_date(value: date) -> date:
     if value >= date.today():
         raise ValueError("Date must be in the past")
     return value
+
+
+def validate_password(value: str) -> str:
+    if len(value) < 12:
+        raise ValueError("Password must be at least 12 characters")
+    if not re.search(r"[a-z]", value):
+        raise ValueError("Password must include a lowercase letter")
+    if not re.search(r"[A-Z]", value):
+        raise ValueError("Password must include an uppercase letter")
+    if not re.search(r"\d", value):
+        raise ValueError("Password must include a number")
+    if not re.search(r"[^A-Za-z0-9]", value):
+        raise ValueError("Password must include a symbol")
+    return value

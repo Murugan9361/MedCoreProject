@@ -43,6 +43,25 @@ class AppointmentStatus(str, enum.Enum):
     NO_SHOW = "no_show"
 
 
+class BillStatus(str, enum.Enum):
+    DRAFT = "draft"
+    ISSUED = "issued"
+    PARTIALLY_PAID = "partially_paid"
+    PAID = "paid"
+    VOID = "void"
+
+
+class PaymentMethod(str, enum.Enum):
+    CASH = "cash"
+    CARD = "card"
+    BANK_TRANSFER = "bank_transfer"
+
+
+class PaymentStatus(str, enum.Enum):
+    SUCCEEDED = "succeeded"
+    REFUNDED = "refunded"
+
+
 CREATABLE_ROLES = {
     Role.SUPER_ADMIN: [Role.ADMIN, Role.DOCTOR, Role.ATTENDER, Role.PATIENT],
     Role.ADMIN: [Role.DOCTOR, Role.ATTENDER, Role.PATIENT],
