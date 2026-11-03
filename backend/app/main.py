@@ -34,6 +34,7 @@ from app.api.routes import (
     records,
     reports,
     users,
+    dictation,
 )
 from app.core.config import settings
 from app.core.database import get_db
@@ -48,7 +49,7 @@ if settings.CORS_ORIGINS:
         CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PATCH"],
+        allow_methods=["*"],
         allow_headers=["Authorization", "Content-Type"],
     )
 
@@ -84,3 +85,4 @@ app.include_router(records.router)
 app.include_router(records.files_router)
 app.include_router(billing.router)
 app.include_router(reports.router)
+app.include_router(dictation.router)

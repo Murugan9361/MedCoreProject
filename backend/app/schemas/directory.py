@@ -15,6 +15,7 @@ class DirectoryUserOut(BaseModel):
     department: Optional[str] = None
     designation: Optional[str] = None
     specialization: Optional[str] = None
+    phone: Optional[str] = None
 
 
 class RoleListOut(BaseModel):

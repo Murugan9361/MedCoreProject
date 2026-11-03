@@ -159,3 +159,17 @@ class UserOut(BaseModel):
     email: EmailStr
     role: Role
     is_active: bool
+
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
+    role: Optional[Role] = None
+    is_active: Optional[bool] = None
+    phone: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    specialization: Optional[str] = None
+    consultation_fee: Optional[float] = None
+    hospital_id: Optional[int] = None

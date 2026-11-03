@@ -68,6 +68,11 @@ def list_role_directory(
             specialization=(
                 user.doctor_details.specialization if user.doctor_details else None
             ),
+            phone=(
+                user.staff_profile.phone
+                if user.staff_profile
+                else (user.profile.phone if user.profile else None)
+            ),
         )
         for user in users
     ]
