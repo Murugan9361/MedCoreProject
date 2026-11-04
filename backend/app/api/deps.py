@@ -10,20 +10,31 @@ from app.models.user import User
 from app.services.access_service import user_hospital_id
 from app.services.audit_service import log_action
 
-bearer_scheme = HTTPBearer()
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def get_current_user(
-    creds: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    creds: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     db: Session = Depends(get_db),
 ) -> User:
+    if creds is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     try:
         payload = jwt.decode(
             creds.credentials,
             settings.SECRET_KEY,
             algorithms=[settings.ALGORITHM],
+            issuer=settings.JWT_ISSUER,
+            audience=settings.JWT_AUDIENCE,
         )
         user_id = int(payload["sub"])
+        if payload.get("typ") != "access":
+            raise JWTError("Not an access token")
+        token_version = int(payload["ver"])
     except (JWTError, KeyError, TypeError, ValueError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -31,7 +42,7 @@ def get_current_user(
         ) from None
 
     user = db.get(User, user_id)
-    if not user or not user.is_active:
+    if not user or not user.is_active or user.token_version != token_version:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
@@ -71,6 +82,11 @@ def require_permission(permission: Permission):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Not enough permissions",
+            )
+        if current.must_change_password:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Password change is required before accessing this resource",
             )
         return current
 

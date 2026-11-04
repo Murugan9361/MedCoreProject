@@ -1,9 +1,9 @@
 import re
 from datetime import date
 from typing import Optional
-from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator, ConfigDict, EmailStr
-from app.enums import Role, Gender, MaritalStatus, BloodType
-from app.enums import Role
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
+from app.core.validators import validate_password
+from app.enums import BloodType, Gender, MaritalStatus, Role
 
 
 class LoginRequest(BaseModel):
@@ -14,8 +14,10 @@ class LoginRequest(BaseModel):
 class UserCreate(BaseModel):
     full_name: str = Field(min_length=1)
     email: EmailStr
-    password: str = Field(min_length=8)
+    password: str = Field(min_length=12)
     role: Role
+
+    _validate_password = field_validator("password")(validate_password)
 
 class PatientRegister(BaseModel):
     # name
@@ -28,7 +30,7 @@ class PatientRegister(BaseModel):
 
     # login
     email: EmailStr
-    password: str = Field(min_length=8)
+    password: str = Field(min_length=12)
 
     # contact
     phone: str
@@ -56,6 +58,8 @@ class PatientRegister(BaseModel):
             raise ValueError("Phone must have 10 digits, e.g. (000) 000-0000")
         return f"({digits[:3]}) {digits[3:6]}-{digits[6:]}"
 
+    _validate_password = field_validator("password")(validate_password)
+
     @field_validator("date_of_birth")
     @classmethod
     def validate_dob(cls, v: date) -> date:
@@ -73,6 +77,28 @@ class PatientRegister(BaseModel):
 class PatientCreate(PatientRegister):
     doctor_id: Optional[int] = None
     hospital_id: Optional[int] = None
+
+
+class PatientProfileUpdate(BaseModel):
+    phone: Optional[str] = None
+    street: Optional[str] = Field(default=None, min_length=1)
+    street2: Optional[str] = None
+    city: Optional[str] = Field(default=None, min_length=1)
+    state: Optional[str] = Field(default=None, min_length=1)
+    postal_code: Optional[str] = Field(default=None, min_length=1)
+    health_change_trigger: Optional[str] = Field(default=None, min_length=1)
+    blood_type: Optional[BloodType] = None
+    marital_status: Optional[MaritalStatus] = None
+
+    @field_validator("phone")
+    @classmethod
+    def validate_optional_phone(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        digits = re.sub(r"\D", "", value)
+        if len(digits) != 10:
+            raise ValueError("Phone must have 10 digits")
+        return f"({digits[:3]}) {digits[3:6]}-{digits[6:]}"
 
 
 class PatientProfileOut(BaseModel):
@@ -133,3 +159,17 @@ class UserOut(BaseModel):
     email: EmailStr
     role: Role
     is_active: bool
+
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
+    role: Optional[Role] = None
+    is_active: Optional[bool] = None
+    phone: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    specialization: Optional[str] = None
+    consultation_fee: Optional[float] = None
+    hospital_id: Optional[int] = None

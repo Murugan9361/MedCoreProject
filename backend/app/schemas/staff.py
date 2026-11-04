@@ -4,13 +4,13 @@ from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
-from app.core.validators import ensure_past_date, normalize_phone
+from app.core.validators import ensure_past_date, normalize_phone, validate_password
 from app.enums import Gender, Role, Shift
 
 
 class StaffBase(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8)
+    password: str = Field(min_length=12)
 
     first_name: str = Field(min_length=1)
     last_name: str = Field(min_length=1)
@@ -40,6 +40,8 @@ class StaffBase(BaseModel):
     @classmethod
     def check_dob(cls, value: date) -> date:
         return ensure_past_date(value)
+
+    _validate_password = field_validator("password")(validate_password)
 
 
 class AdminCreate(StaffBase):

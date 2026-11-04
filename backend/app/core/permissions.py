@@ -20,6 +20,12 @@ class Permission(str, Enum):
     LAB_UPLOAD = "lab.upload"
     LAB_VIEW = "lab.view"
     AUDIT_VIEW = "audit.view"
+    ROLE_DIRECTORY_VIEW = "role.directory.view"
+    PATIENT_PROFILE_UPDATE = "patient.profile.update"
+    BILLING_MANAGE = "billing.manage"
+    BILLING_VIEW = "billing.view"
+    PAYMENT_RECORD = "payment.record"
+    REPORT_VIEW = "report.view"
 
 
 _ALL_PERMISSIONS = frozenset(Permission)
@@ -36,12 +42,18 @@ _ROLE_PERMISSIONS = {
             Permission.ATTENDER_CREATE,
             Permission.PATIENT_CREATE,
             Permission.PATIENT_DIRECTORY_VIEW,
+            Permission.DOCTOR_DIRECTORY_VIEW,
             Permission.APPOINTMENT_MANAGE,
             Permission.APPOINTMENT_VIEW,
             Permission.PATIENT_CLINICAL_VIEW,
             Permission.PATIENT_CLINICAL_WRITE,
             Permission.LAB_UPLOAD,
             Permission.LAB_VIEW,
+            Permission.ROLE_DIRECTORY_VIEW,
+            Permission.BILLING_MANAGE,
+            Permission.BILLING_VIEW,
+            Permission.PAYMENT_RECORD,
+            Permission.REPORT_VIEW,
         }
     ),
     Role.ATTENDER: frozenset(
@@ -51,7 +63,14 @@ _ROLE_PERMISSIONS = {
             Permission.DOCTOR_DIRECTORY_VIEW,
             Permission.APPOINTMENT_MANAGE,
             Permission.APPOINTMENT_VIEW,
+            Permission.PATIENT_CLINICAL_VIEW,
+            Permission.PATIENT_CLINICAL_WRITE,
             Permission.LAB_UPLOAD,
+            Permission.LAB_VIEW,
+            Permission.BILLING_MANAGE,
+            Permission.BILLING_VIEW,
+            Permission.PAYMENT_RECORD,
+            Permission.REPORT_VIEW,
         }
     ),
     Role.PATIENT: frozenset(
@@ -60,7 +79,11 @@ _ROLE_PERMISSIONS = {
             Permission.APPOINTMENT_MANAGE,
             Permission.APPOINTMENT_VIEW,
             Permission.PATIENT_CLINICAL_VIEW,
+            Permission.LAB_UPLOAD,
             Permission.LAB_VIEW,
+            Permission.PATIENT_PROFILE_UPDATE,
+            Permission.BILLING_VIEW,
+            Permission.REPORT_VIEW,
         }
     ),
 }

@@ -15,6 +15,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     must_change_password = Column(Boolean, default=False)
+    token_version = Column(Integer, nullable=False, default=0)
     profile = relationship("PatientProfile", back_populates="user", uselist=False)
     staff_profile = relationship("StaffProfile", back_populates="user", uselist=False)
     doctor_details = relationship("DoctorDetails", back_populates="user", uselist=False)
