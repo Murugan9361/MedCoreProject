@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import (
     Column,
+    Computed,
     DateTime,
     Enum,
     ForeignKey,
@@ -26,7 +27,13 @@ class Appointment(Base):
             unique=True,
             sqlite_where=text("status = 'SCHEDULED'"),
             postgresql_where=text("status = 'SCHEDULED'"),
-        ),
+        ).ddl_if(dialect=("sqlite", "postgresql")),
+        Index(
+            "uq_doctor_scheduled_slot",
+            "doctor_id",
+            "scheduled_slot",
+            unique=True,
+        ).ddl_if(dialect="mysql"),
     )
 
     id = Column(Integer, primary_key=True, index=True)
@@ -39,6 +46,14 @@ class Appointment(Base):
         Enum(AppointmentStatus),
         nullable=False,
         default=AppointmentStatus.SCHEDULED,
+    )
+    scheduled_slot = Column(
+        DateTime,
+        Computed(
+            "CASE WHEN status = 'SCHEDULED' THEN start_time ELSE NULL END",
+            persisted=True,
+        ),
+        nullable=True,
     )
     reason = Column(Text, nullable=True)
     cancel_reason = Column(Text, nullable=True)

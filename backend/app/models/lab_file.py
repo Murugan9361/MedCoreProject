@@ -15,11 +15,11 @@ class LabFile(Base):
     )
     appointment_id = Column(Integer, ForeignKey("appointments.id"), nullable=True)
     uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    original_name = Column(String, nullable=False)
-    stored_name = Column(String, nullable=False, unique=True)
-    content_type = Column(String, nullable=False)
+    original_name = Column(String(255), nullable=False)
+    stored_name = Column(String(255), nullable=False, unique=True)
+    content_type = Column(String(255), nullable=False)
     size_bytes = Column(Integer, nullable=False)
-    description = Column(String, nullable=True)
+    description = Column(String(255), nullable=True)
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

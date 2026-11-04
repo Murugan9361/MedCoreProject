@@ -1,6 +1,7 @@
-ALTER TABLE public.patient_profiles
-ADD COLUMN IF NOT EXISTS hospital_id INTEGER NULL
-REFERENCES public.hospitals (id);
+ALTER TABLE patient_profiles
+ADD COLUMN hospital_id INTEGER NULL,
+ADD CONSTRAINT fk_patient_profiles_hospital_id
+    FOREIGN KEY (hospital_id) REFERENCES hospitals (id);
 
-CREATE INDEX IF NOT EXISTS ix_patient_profiles_hospital_id
-ON public.patient_profiles (hospital_id);
+CREATE INDEX ix_patient_profiles_hospital_id
+ON patient_profiles (hospital_id);

@@ -16,11 +16,8 @@ class Settings(BaseSettings):
     @field_validator("DATABASE_URL")
     @classmethod
     def validate_database_url(cls, value: str) -> str:
-        if make_url(value).drivername not in {
-            "postgresql",
-            "postgresql+psycopg2",
-        }:
-            raise ValueError("DATABASE_URL must use PostgreSQL.")
+        if make_url(value).drivername != "mysql+pymysql":
+            raise ValueError("DATABASE_URL must use MySQL with PyMySQL.")
         return value
 
     model_config = SettingsConfigDict(

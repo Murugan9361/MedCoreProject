@@ -10,23 +10,23 @@ class PatientProfile(Base):
     user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
     hospital_id = Column(Integer, ForeignKey("hospitals.id"), nullable=True, index=True)
 
-    first_name = Column(String, nullable=False)
-    last_name = Column(String, nullable=False)
+    first_name = Column(String(255), nullable=False)
+    last_name = Column(String(255), nullable=False)
 
     # person filling out the form, if not the patient
-    filler_first_name = Column(String, nullable=True)
-    filler_last_name = Column(String, nullable=True)
+    filler_first_name = Column(String(255), nullable=True)
+    filler_last_name = Column(String(255), nullable=True)
 
-    phone = Column(String, nullable=False)
+    phone = Column(String(255), nullable=False)
 
-    street = Column(String, nullable=False)
-    street2 = Column(String, nullable=True)
-    city = Column(String, nullable=False)
-    state = Column(String, nullable=False)
-    postal_code = Column(String, nullable=False)
+    street = Column(String(255), nullable=False)
+    street2 = Column(String(255), nullable=True)
+    city = Column(String(255), nullable=False)
+    state = Column(String(255), nullable=False)
+    postal_code = Column(String(255), nullable=False)
 
     date_of_birth = Column(Date, nullable=False)
-    place_of_birth = Column(String, nullable=False)
+    place_of_birth = Column(String(255), nullable=False)
     gender = Column(Enum(Gender), nullable=False)
     marital_status = Column(Enum(MaritalStatus), nullable=False)
     health_change_trigger = Column(Text, nullable=False)
