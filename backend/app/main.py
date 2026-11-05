@@ -1,3 +1,5 @@
+import logging
+from contextlib import asynccontextmanager
 from sqlalchemy import text
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,9 +39,22 @@ from app.api.routes import (
     dictation,
 )
 from app.core.config import settings
-from app.core.database import get_db
+from app.core.database import Base, engine, get_db
 
-app = FastAPI(title="MedCore", version="1.0.0")
+logger = logging.getLogger("uvicorn.error")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Ensure all tables are created across supported databases (MySQL, PostgreSQL, SQLite)
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as exc:
+        logger.warning("Could not auto-create tables during startup: %s", exc)
+    yield
+
+
+app = FastAPI(title="MedCore", version="1.0.0", lifespan=lifespan)
 app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=settings.TRUSTED_HOSTS if settings.ENVIRONMENT == "production" else ["*"],

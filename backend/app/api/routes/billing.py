@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.api.deps import require_permission
 from app.core.database import get_db
 from app.core.permissions import Permission
+from app.models.appointment import Appointment
 from app.models.billing import Bill, Payment
 from app.models.user import User
 from app.schemas.billing import BillCreate, BillOut, PaymentCreate, PaymentOut
@@ -24,7 +25,12 @@ router = APIRouter(prefix="/billing", tags=["billing"])
 
 
 def _with_details(query):
-    return query.options(joinedload(Bill.patient), joinedload(Bill.items), joinedload(Bill.payments))
+    return query.options(
+        joinedload(Bill.patient),
+        joinedload(Bill.appointment).joinedload(Appointment.doctor),
+        joinedload(Bill.items),
+        joinedload(Bill.payments),
+    )
 
 
 @router.post("/bills", response_model=BillOut, status_code=status.HTTP_201_CREATED)

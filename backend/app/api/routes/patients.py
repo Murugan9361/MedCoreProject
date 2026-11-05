@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_permission
 from app.core.database import get_db
 from app.core.permissions import Permission
 from app.enums import CREATABLE_ROLES, Role
+from app.models.appointment import Appointment
 from app.models.doctor_patient import DoctorPatient
 from app.models.hospital import Hospital
 from app.models.patient_profile import PatientProfile
@@ -15,7 +17,7 @@ from app.schemas.user import (
     PatientOut,
     PatientProfileUpdate,
 )
-from app.services.access_service import user_hospital_id
+from app.services.access_service import get_patient_for_user, user_hospital_id
 from app.services.audit_service import log_action
 from app.services.patient_service import create_patient_user
 
@@ -88,7 +90,7 @@ def create_patient(
             doctor_hospital = (
                 doctor.staff_profile.hospital_id if doctor.staff_profile else None
             )
-            if creator_hospital != doctor_hospital:
+            if creator_hospital is not None and doctor_hospital is not None and creator_hospital != doctor_hospital:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Doctor must be in your hospital",
@@ -138,10 +140,16 @@ def list_patients(
     query = db.query(User).join(PatientProfile, PatientProfile.user_id == User.id)
     query = query.filter(User.role == Role.PATIENT)
     if current.role == Role.DOCTOR:
-        query = query.join(
-            DoctorPatient,
-            DoctorPatient.patient_id == User.id,
-        ).filter(DoctorPatient.doctor_id == current.id)
+        doctor_hospital = user_hospital_id(current)
+        assigned_ids = db.query(DoctorPatient.patient_id).filter(DoctorPatient.doctor_id == current.id)
+        apt_patient_ids = db.query(Appointment.patient_id).filter(Appointment.doctor_id == current.id)
+        query = query.filter(
+            or_(
+                User.id.in_(assigned_ids),
+                User.id.in_(apt_patient_ids),
+                PatientProfile.hospital_id == doctor_hospital,
+            )
+        )
     elif current.role in (Role.ADMIN, Role.ATTENDER):
         hospital_id = user_hospital_id(current)
         if hospital_id is None:
@@ -155,7 +163,17 @@ def list_patients(
             "patient.list",
             "patient",
             patient.id,
-            hospital_id=patient.profile.hospital_id,
+            hospital_id=patient.profile.hospital_id if patient.profile else None,
             request=request,
         )
     return patients
+
+
+@router.get("/{patient_id}", response_model=PatientOut)
+def get_patient_endpoint(
+    patient_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current: User = Depends(require_permission(Permission.PATIENT_DIRECTORY_VIEW)),
+) -> User:
+    return get_patient_for_user(db, current, patient_id, request=request)

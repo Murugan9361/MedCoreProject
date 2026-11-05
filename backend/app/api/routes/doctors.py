@@ -79,16 +79,10 @@ def doctor_directory(
             if current.staff_profile is not None
             else None
         )
-        query = query.filter(StaffProfile.hospital_id == own_hospital)
+        if own_hospital is not None:
+            query = query.filter(StaffProfile.hospital_id == own_hospital)
     elif current.role == Role.SUPER_ADMIN and hospital_id is not None:
         query = query.filter(StaffProfile.hospital_id == hospital_id)
-    elif current.role == Role.PATIENT and current.profile is not None:
-        if current.profile.hospital_id is not None:
-            query = query.filter(
-                StaffProfile.hospital_id == current.profile.hospital_id
-            )
-        elif hospital_id is not None:
-            query = query.filter(StaffProfile.hospital_id == hospital_id)
     elif hospital_id is not None:
         query = query.filter(StaffProfile.hospital_id == hospital_id)
     if specialization:
@@ -129,12 +123,7 @@ def doctor_slots(
             current_hospital_id = current.staff_profile.hospital_id
         else:
             current_hospital_id = None
-        if doctor.staff_profile.hospital_id != current_hospital_id:
+        if current_hospital_id is not None and doctor.staff_profile.hospital_id != current_hospital_id:
             raise HTTPException(status_code=404, detail="Doctor not found")
-    elif current.role == Role.PATIENT and current.profile is not None:
-        if (
-            current.profile.hospital_id is not None
-            and doctor.staff_profile.hospital_id != current.profile.hospital_id
-        ):
-            raise HTTPException(status_code=404, detail="Doctor not found")
+
     return {"doctor_id": doctor_id, "date": day, "slots": free_slots(db, doctor_id, day)}

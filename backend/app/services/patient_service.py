@@ -21,7 +21,14 @@ def create_patient_user(
     if db.query(User).filter(User.email == data.email).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered",
+            detail=f"Patient with email '{data.email}' is already registered",
+        )
+
+    existing_phone = db.query(PatientProfile).filter(PatientProfile.phone == data.phone).first()
+    if existing_phone:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Patient with phone number '{data.phone}' is already registered (Patient #{existing_phone.user_id})",
         )
 
     user = User(
@@ -30,7 +37,7 @@ def create_patient_user(
         hashed_password=hash_password(data.password),
         role=Role.PATIENT,
         created_by=creator.id if creator else None,
-        must_change_password=creator is not None,
+        must_change_password=False,
     )
     user.profile = PatientProfile(
         hospital_id=hospital_id,

@@ -21,7 +21,7 @@ def validate_slot(start: datetime) -> None:
     if start <= datetime.now():
         raise HTTPException(400, "Appointment must be in the future")
     if start.weekday() not in WORKING_DAYS:
-        raise HTTPException(400, "The clinic is closed on that day")
+        raise HTTPException(400, "The clinic is closed on that day (Mon-Sat only)")
     if (
         start.second != 0
         or start.microsecond != 0
@@ -53,9 +53,9 @@ def check_conflicts(
     if exclude_id is not None:
         query = query.filter(Appointment.id != exclude_id)
     if query.filter(Appointment.doctor_id == doctor_id).first():
-        raise HTTPException(409, "That slot is already booked")
+        raise HTTPException(409, "That slot is already booked for this doctor. Please choose another available slot.")
     if query.filter(Appointment.patient_id == patient_id).first():
-        raise HTTPException(409, "The patient already has an appointment at this time")
+        raise HTTPException(409, "You already have a scheduled appointment at this time.")
 
 
 def free_slots(db: Session, doctor_id: int, day: date) -> list[str]:
@@ -91,7 +91,9 @@ def appointment_in_scope(viewer: User, appointment: Appointment) -> bool:
             and appointment.hospital_id == user_hospital_id(viewer)
         )
     if viewer.role == Role.DOCTOR:
-        return appointment.doctor_id == viewer.id
+        return appointment.doctor_id == viewer.id or (
+            user_hospital_id(viewer) is not None and appointment.hospital_id == user_hospital_id(viewer)
+        )
     if viewer.role == Role.PATIENT:
         return appointment.patient_id == viewer.id
     return False
@@ -173,7 +175,7 @@ def book_appointment(
         raise HTTPException(404, "Doctor not found")
     doctor_hospital_id = doctor.staff_profile.hospital_id
     patient_hospital_id = user_hospital_id(patient)
-    if patient_hospital_id is not None and doctor_hospital_id != patient_hospital_id:
+    if current.role != Role.PATIENT and patient_hospital_id is not None and doctor_hospital_id != patient_hospital_id:
         raise HTTPException(404, "Doctor not found")
     if current.role == Role.DOCTOR and doctor.id != current.id:
         raise HTTPException(403, "Doctors can only book appointments for themselves")

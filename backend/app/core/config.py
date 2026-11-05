@@ -23,11 +23,28 @@ class Settings(BaseSettings):
     @field_validator("DATABASE_URL")
     @classmethod
     def validate_database_url(cls, value: str, info: ValidationInfo) -> str:
-        if (
-            not info.data.get("TESTING", False)
-            and make_url(value).drivername != "postgresql+psycopg2"
-        ):
-            raise ValueError("DATABASE_URL must use postgresql+psycopg2.")
+        if info.data.get("TESTING", False):
+            return value
+
+        # Automatically use installed drivers if bare scheme is provided
+        if value.startswith("mysql://"):
+            value = "mysql+pymysql://" + value[len("mysql://") :]
+        elif value.startswith("postgresql://"):
+            value = "postgresql+psycopg2://" + value[len("postgresql://") :]
+
+        try:
+            url = make_url(value)
+            driver = url.drivername
+        except Exception as exc:
+            raise ValueError(f"Invalid DATABASE_URL format: {exc}") from exc
+
+        valid_prefixes = ("postgresql", "mysql", "sqlite")
+        if not any(driver == p or driver.startswith(f"{p}+") for p in valid_prefixes):
+            raise ValueError(
+                f"Unsupported database driver '{driver}'. "
+                "DATABASE_URL must be a valid PostgreSQL (e.g. postgresql+psycopg2://...), "
+                "MySQL (e.g. mysql+pymysql://...), or SQLite connection string."
+            )
         return value
 
     @field_validator("CORS_ORIGINS", "TRUSTED_HOSTS", mode="before")

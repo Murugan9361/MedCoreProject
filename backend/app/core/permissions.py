@@ -82,7 +82,9 @@ _ROLE_PERMISSIONS = {
             Permission.LAB_UPLOAD,
             Permission.LAB_VIEW,
             Permission.PATIENT_PROFILE_UPDATE,
+            Permission.BILLING_MANAGE,
             Permission.BILLING_VIEW,
+            Permission.PAYMENT_RECORD,
             Permission.REPORT_VIEW,
         }
     ),

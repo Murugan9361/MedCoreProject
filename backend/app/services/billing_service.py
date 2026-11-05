@@ -3,6 +3,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from uuid import uuid4
 
 from fastapi import HTTPException, Request
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Query, Session
 
@@ -10,6 +11,7 @@ from app.enums import BillStatus, PaymentStatus, Role
 from app.models.appointment import Appointment
 from app.models.billing import Bill, BillItem, Payment
 from app.models.doctor_patient import DoctorPatient
+from app.models.hospital import Hospital
 from app.models.user import User
 from app.schemas.billing import BillCreate, PaymentCreate
 from app.services.access_service import patient_in_scope, user_hospital_id
@@ -30,10 +32,22 @@ def bills_query_for_user(db: Session, viewer: User) -> Query:
         return query.filter(Bill.hospital_id == user_hospital_id(viewer))
     if viewer.role == Role.PATIENT:
         return query.filter(Bill.patient_id == viewer.id)
+
+    # Role.DOCTOR: assigned patients, appointment patients, or hospital bills
     assigned_patients = db.query(DoctorPatient.patient_id).filter(
         DoctorPatient.doctor_id == viewer.id
     )
-    return query.filter(Bill.patient_id.in_(assigned_patients))
+    apt_patients = db.query(Appointment.patient_id).filter(
+        Appointment.doctor_id == viewer.id
+    )
+    doc_hospital = user_hospital_id(viewer)
+    return query.filter(
+        or_(
+            Bill.patient_id.in_(assigned_patients),
+            Bill.patient_id.in_(apt_patients),
+            Bill.hospital_id == doc_hospital,
+        )
+    )
 
 
 def get_bill_for_user(db: Session, viewer: User, bill_id: int) -> Bill:
@@ -65,18 +79,30 @@ def create_bill(
 ) -> Bill:
     if not patient_in_scope(db, current, patient):
         raise HTTPException(404, "Patient not found")
+    
     hospital_id = user_hospital_id(patient) or user_hospital_id(current)
-    if hospital_id is None:
-        raise HTTPException(400, "Patient must belong to a hospital")
+
     if data.appointment_id is not None:
         appointment = db.get(Appointment, data.appointment_id)
+        if appointment is not None and hospital_id is None:
+            hospital_id = appointment.hospital_id
         if (
             appointment is None
             or appointment.patient_id != patient.id
-            or appointment.hospital_id != hospital_id
+            or (hospital_id is not None and appointment.hospital_id != hospital_id)
             or (current.role == Role.DOCTOR and appointment.doctor_id != current.id)
+            or (current.role == Role.PATIENT and appointment.patient_id != current.id)
         ):
             raise HTTPException(400, "appointment_id does not match this patient")
+        if hospital_id is None:
+            hospital_id = appointment.hospital_id
+
+    if hospital_id is None:
+        first_hosp = db.query(Hospital).first()
+        hospital_id = first_hosp.id if first_hosp else 1
+
+    if patient.profile is not None and patient.profile.hospital_id is None:
+        patient.profile.hospital_id = hospital_id
 
     subtotal = Decimal("0")
     tax_amount = Decimal("0")

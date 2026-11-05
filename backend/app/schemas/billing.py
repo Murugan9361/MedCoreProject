@@ -73,6 +73,8 @@ class BillOut(BaseModel):
     patient_id: int
     patient_name: str
     appointment_id: Optional[int]
+    doctor_id: Optional[int] = None
+    doctor_name: Optional[str] = None
     status: BillStatus
     currency: str
     subtotal: Decimal

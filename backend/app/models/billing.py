@@ -58,7 +58,19 @@ class Bill(Base):
 
     @property
     def patient_name(self) -> str:
-        return self.patient.full_name
+        return self.patient.full_name if self.patient else "Patient"
+
+    @property
+    def doctor_name(self) -> str | None:
+        if self.appointment and self.appointment.doctor:
+            return self.appointment.doctor.full_name
+        return None
+
+    @property
+    def doctor_id(self) -> int | None:
+        if self.appointment:
+            return self.appointment.doctor_id
+        return None
 
 
 class BillItem(Base):

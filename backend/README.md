@@ -17,62 +17,53 @@ trails, and role-scoped access.
 Attenders deliberately cannot author diagnoses or prescriptions. That is a
 clinical-safety boundary; only doctors, admins, and super admins can do so.
 
-## First deployment
+## Database Configuration (MySQL & PostgreSQL)
 
-1. Create a PostgreSQL database and a dedicated application role.
-2. Copy [app/.env.example](app/.env.example) to `app/.env`, set a unique
-   48-byte `SECRET_KEY`, and use a `postgresql+psycopg2://` URL.
-3. Apply every SQL file in `migrations/` in filename order using a temporary
-   deploy role, not the runtime application role.
-4. Set `BOOTSTRAP_SUPER_ADMIN_EMAIL` and
-   `BOOTSTRAP_SUPER_ADMIN_PASSWORD` in the shell, then run:
+The MedCore backend supports both **MySQL** and **PostgreSQL**. Configure the target database by setting `DATABASE_URL` in `app/.env`:
 
-   ```powershell
-   .\myenv\Scripts\python.exe seed.py
-   ```
-
-5. Run the service behind TLS:
-
-   ```powershell
-   .\myenv\Scripts\uvicorn.exe app.main:app --host 127.0.0.1 --port 8000 --proxy-headers
-   ```
-
-The API is documented at `/docs`; disable public docs in your production
-ingress unless the network is restricted to trusted operators.
-
-## Authentication
-
-`POST /auth/login` returns a 15-minute access token and a rotating refresh
-token. Send the access token as `Authorization: Bearer <token>`. Store refresh
-tokens only in an HttpOnly, Secure, SameSite cookie (or an equivalent protected
-native-client store); do not persist them in browser local storage. First-login
-accounts must call `/auth/change-password` before protected business endpoints
-are available. `POST /auth/logout` revokes every active session for that user.
-
-## Payments and speech-to-text
-
-The implemented billing API records internal cash/card/bank-transfer
-reconciliation. `POST /billing/bills/{bill_id}/payments` requires an
-`Idempotency-Key` header to prevent duplicate collection on retries. It does
-not accept or store card numbers.
-
-A real payment gateway needs a chosen provider, merchant account, webhook
-signing secret, settlement currency, tax/invoice requirements, and a PCI
-responsibility decision. Speech-to-text needs a provider with a healthcare data
-processing agreement, retention/region decision, and an approved audio storage
-policy. Those external contracts and credentials are intentionally not guessed
-or embedded in the application.
-
-## Verification
-
-The self-contained workflow suite uses a temporary SQLite database and never
-contacts a real database or payment provider:
-
-```powershell
-.\myenv\Scripts\python.exe -B -m unittest tests.test_api -v
+### 1. MySQL (Default Port 3306)
+Ensure MySQL server is running and a database (e.g. `medcore`) exists:
+```env
+DATABASE_URL=mysql+pymysql://<user>:<password>@localhost:3306/medcore
 ```
+*(Driver: `PyMySQL` is installed)*
 
-It verifies creation and login for all roles, forced password change, least
-privilege, patient self-service, appointments, clinical records, protected
-upload, bills, idempotent payments, scoped reports, and refresh-token replay
-rejection.
+### 2. PostgreSQL (Default Port 5432)
+Ensure PostgreSQL server is running and a database (e.g. `medcore`) exists:
+```env
+DATABASE_URL=postgresql+psycopg2://<user>:<password>@localhost:5432/medcore
+```
+*(Driver: `psycopg2-binary` is installed)*
+
+---
+
+## Deployment & Database Initialization
+
+1. Create a MySQL or PostgreSQL database (`medcore`).
+2. Copy `app/.env.example` to `app/.env` and update `SECRET_KEY` and `DATABASE_URL`.
+3. Synchronize tables and schema:
+   ```powershell
+   .\env\Scripts\python.exe init_db.py
+   ```
+   *(Note: The FastAPI app will also auto-ensure required tables on startup via its application lifespan).*
+
+4. (Optional) Bootstrap an initial administrator:
+   ```powershell
+   $env:BOOTSTRAP_SUPER_ADMIN_EMAIL = "admin@medcore.com"
+   $env:BOOTSTRAP_SUPER_ADMIN_PASSWORD = "StrongAdminPassword123!"
+   .\env\Scripts\python.exe seed.py
+   ```
+
+5. Run the service:
+   ```powershell
+   .\env\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+   ```
+
+The API docs are available at: `http://127.0.0.1:8000/docs`
+
+## Verification & Tests
+
+Run the test suite:
+```powershell
+.\env\Scripts\python.exe -B -m unittest tests.test_api -v
+```

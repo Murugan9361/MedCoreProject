@@ -29,7 +29,8 @@ def patient_in_scope(db: Session, viewer: User, patient: User) -> bool:
             and user_hospital_id(patient) == viewer_hospital
         )
     if viewer.role == Role.DOCTOR:
-        return (
+        # 1. Doctor assigned directly to patient
+        if (
             db.query(DoctorPatient.id)
             .filter(
                 DoctorPatient.doctor_id == viewer.id,
@@ -37,7 +38,25 @@ def patient_in_scope(db: Session, viewer: User, patient: User) -> bool:
             )
             .first()
             is not None
-        )
+        ):
+            return True
+        # 2. Scheduled or existing appointment with this doctor
+        from app.models.appointment import Appointment
+        if (
+            db.query(Appointment.id)
+            .filter(
+                Appointment.doctor_id == viewer.id,
+                Appointment.patient_id == patient.id,
+            )
+            .first()
+            is not None
+        ):
+            return True
+        # 3. Patient registered in the same hospital as the doctor
+        viewer_hospital = user_hospital_id(viewer)
+        if viewer_hospital is not None and user_hospital_id(patient) == viewer_hospital:
+            return True
+        return False
     return viewer.role == Role.PATIENT and viewer.id == patient.id
 
 

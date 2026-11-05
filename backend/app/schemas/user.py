@@ -102,13 +102,17 @@ class PatientProfileUpdate(BaseModel):
 
 
 class PatientProfileOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: Optional[int] = None
+    hospital_id: Optional[int] = None
     first_name: str
     last_name: str
-    filler_first_name: Optional[str]
-    filler_last_name: Optional[str]
+    filler_first_name: Optional[str] = None
+    filler_last_name: Optional[str] = None
     phone: str
     street: str
-    street2: Optional[str]
+    street2: Optional[str] = None
     city: str
     state: str
     postal_code: str
@@ -119,36 +123,36 @@ class PatientProfileOut(BaseModel):
     health_change_trigger: str
     blood_type: BloodType
 
-    class Config:
-        from_attributes = True
 
 class PatientOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     email: EmailStr
     role: Role
     is_active: bool
-    profile: PatientProfileOut
-
-    class Config:
-        from_attributes = True
+    profile: Optional[PatientProfileOut] = None
 
 
 class PatientDirectoryProfileOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: Optional[int] = None
+    hospital_id: Optional[int] = None
     first_name: str
     last_name: str
     phone: str
     date_of_birth: date
     gender: Gender
-
-    model_config = ConfigDict(from_attributes=True)
+    blood_type: Optional[BloodType] = None
 
 
 class PatientDirectoryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     email: EmailStr
-    profile: PatientDirectoryProfileOut
-
-    model_config = ConfigDict(from_attributes=True)
+    profile: Optional[PatientDirectoryProfileOut] = None
 
 
 class UserOut(BaseModel):
@@ -159,6 +163,7 @@ class UserOut(BaseModel):
     email: EmailStr
     role: Role
     is_active: bool
+    must_change_password: bool = False
 
 
 class UserUpdate(BaseModel):
